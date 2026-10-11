@@ -8,6 +8,7 @@
 <meta name="application-name" content="ao timer">
 <title>ao timer</title>
 <link rel="manifest" href="manifest.json">
+<script src="aosync.js" defer></script>
 <style>
   :root {
     --bg: #0d0f12;
@@ -239,7 +240,7 @@ const LABELS = {
     colDuration: 'Dauer (s)', colColor: 'Farbe', colCopy: 'Kopieren', colDelete: 'Löschen'
   },
   timer: { workout: 'Workout', start: 'Start', stop: 'Stop', next: 'Vor', prev: 'Zurück', done: 'Fertig', noName: '(ohne Namen)' },
-  list: { start: 'Starten', del: 'Löschen', setupNew: 'Setup neu' },
+  list: { start: 'Starten', del: 'Löschen', setupNew: 'Setup neu', send: 'Senden (QR)', receive: 'Empfangen (QR)' },
   sound: { none: 'kein Sound', hint: 'Tippe auf ein Feld, um eine Audiodatei zu wählen. Die Sounds gelten für alle Workouts.' },
   common: { cancel: 'Abbrechen', del: 'Löschen', discard: 'Verwerfen', remove: 'Entfernen' },
   msg: {
@@ -252,6 +253,8 @@ const LABELS = {
     saveFailed: 'Speichern fehlgeschlagen.',
     selectWorkout: 'Bitte ein Workout auswählen.',
     deleted: 'Workout gelöscht.',
+    nothingToSend: 'Noch keine gesicherten Workouts zum Senden.',
+    syncMissing: 'Übertragung nicht verfügbar – bitte App neu laden.',
     confirmDelete: n => `Workout '${n}' wirklich löschen?`,
     confirmDiscard: 'Ungesicherte Änderungen im Setup verwerfen?',
     confirmRemoveSound: n => `Sound '${n}' entfernen?`,
@@ -570,10 +573,60 @@ const Store = (() => {
   }
   function getSoundMeta(color, slot) { return soundMeta[soundKey(color, slot)] || null; }
 
+  /* --- Übertragung zwischen Geräten (QR) ---
+     Nur gesicherte Workouts. Nichts wird gelöscht; bei gleichem Namen gewinnt
+     die Fassung mit dem jüngeren Sicherungszeitpunkt. */
+  function exportData() {
+    return {
+      v: 1,
+      w: workouts.map(w => [w.name, w.savedAt, w.intervals.map(i => [i.duration, COLORS.indexOf(i.color)])])
+    };
+  }
+  function importData(data) {
+    if (!data || data.v !== 1 || !Array.isArray(data.w)) throw new Error('Unbekanntes Datenformat.');
+    const res = { added: [], updated: [], kept: [] };
+    const backup = JSON.stringify(workouts);
+    let setupReplace = null;
+    for (const item of data.w) {
+      if (!Array.isArray(item)) continue;
+      const [name, ts, ints] = item;
+      const clean = sanitizeWorkout({
+        name: typeof name === 'string' ? name.trim() : null,
+        savedAt: ts,
+        intervals: Array.isArray(ints) ? ints.map(x => Array.isArray(x) ? { duration: x[0], color: COLORS[x[1]] } : null) : []
+      });
+      if (!clean || !clean.name || !(Number(ts) > 0)) continue;
+      const local = workouts.find(w => Utils.normName(w.name) === Utils.normName(clean.name));
+      if (!local) {
+        workouts.push({ id: Utils.uid(), name: clean.name, intervals: clean.intervals, savedAt: clean.savedAt });
+        res.added.push(clean.name);
+      } else if (clean.savedAt > local.savedAt) {
+        const wasLoaded = setup.id === local.id && !isSetupDirty();
+        Object.assign(local, { name: clean.name, intervals: clean.intervals, savedAt: clean.savedAt });
+        if (wasLoaded) setupReplace = local.id;
+        res.updated.push(clean.name);
+      } else {
+        res.kept.push(local.name);
+      }
+    }
+    if ((res.added.length || res.updated.length) && !persistWorkouts()) {
+      workouts = JSON.parse(backup);
+      throw new Error(LABELS.msg.saveFailed);
+    }
+    // Ein unverändert geladenes Workout im Setup auf die neue Fassung bringen
+    if (setupReplace) {
+      const keepTimer = timerWorkoutId;
+      loadIntoSetup(setupReplace);
+      timerWorkoutId = keepTimer;
+      persistDraft();
+    }
+    return res;
+  }
+
   return {
     init, getWorkout, listWorkouts, deleteWorkout,
     getSetup, isSetupDirty, setSetupName, updateInterval, reorderSetup, applyMarks, saveSetup, loadIntoSetup,
-    selectForTimer, getTimerWorkout,
+    selectForTimer, getTimerWorkout, exportData, importData,
     soundKey, loadSounds, setSound, removeSound, getSoundMeta
   };
 })();
@@ -1043,6 +1096,10 @@ const ListView = (() => {
         Utils.button(L.del, onDelete),
         Utils.button(L.setupNew, onSetupNew)
       ]),
+      Utils.el('div', { class: 'actions' }, [
+        Utils.button(L.send, onSend),
+        Utils.button(L.receive, onReceive)
+      ]),
       listEl
     );
   }
@@ -1104,6 +1161,31 @@ const ListView = (() => {
     Store.loadIntoSetup(w.id);
     SetupView.resetUi();
     Router.show('setup');
+  }
+
+  function onSend() {
+    if (!window.AOSync) { Utils.toast(LABELS.msg.syncMissing); return; }
+    const data = Store.exportData();
+    if (!data.w.length) { Utils.toast(LABELS.msg.nothingToSend); return; }
+    const n = data.w.length;
+    window.AOSync.send({ app: 'timer', data, summary: n === 1 ? '1 gesichertes Workout' : `${n} gesicherte Workouts` });
+  }
+
+  function onReceive() {
+    if (!window.AOSync) { Utils.toast(LABELS.msg.syncMissing); return; }
+    window.AOSync.receive({
+      app: 'timer',
+      apply: data => {
+        const r = Store.importData(data);
+        render();
+        const line = (label, arr) => arr.length ? `${label} (${arr.length}): ${arr.join(', ')}` : '';
+        return [
+          line('Neu', r.added),
+          line('Aktualisiert', r.updated),
+          line('Behalten, weil hier gleich alt oder neuer', r.kept)
+        ].filter(Boolean).join('\n') || 'Keine Workouts im Code gefunden.';
+      }
+    });
   }
 
   return { build, show };

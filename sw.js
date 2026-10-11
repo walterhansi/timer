@@ -3,13 +3,16 @@
 
 'use strict';
 
-const CACHE_VERSION = 'ao-timer-v3';
+const CACHE_VERSION = 'ao-timer-v4';
 const NETWORK_TIMEOUT_MS = 3000;
 
 const APP_SHELL = [
   './',
   './index.html',
-  './manifest.json'
+  './manifest.json',
+  './aosync.js',
+  './lib/qrcode.js',
+  './lib/jsqr.js'
 ];
 
 self.addEventListener('install', event => {
