@@ -3,7 +3,7 @@
 
 'use strict';
 
-const CACHE_VERSION = 'ao-timer-v4';
+const CACHE_VERSION = 'ao-timer-v5';
 const NETWORK_TIMEOUT_MS = 3000;
 
 const APP_SHELL = [

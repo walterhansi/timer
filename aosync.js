@@ -16,6 +16,11 @@
   const FRAME_MS = 1100;    // Wechselzeit bei mehreren QR-Codes
   const SCAN_MS = 160;
   const APP_NAMES = { timer: 'ao timer', puls: 'ao Puls' };
+  // Wo die Knöpfe in der jeweiligen App sitzen – muss zu den Beschriftungen in der App passen
+  const WHERE = {
+    timer: { send: 'unter „List“ auf „Senden (QR)“', recv: 'unter „List“ auf „Empfangen (QR)“' },
+    puls:  { send: 'unter „Intervals“ oder „Zones“ auf „QR fürs Handy“', recv: 'unter „Intervals“ oder „Zones“ auf „QR einlesen“' }
+  };
   const BASE = (document.currentScript && document.currentScript.src)
     ? new URL('.', document.currentScript.src).href : new URL('.', location.href).href;
 
@@ -154,7 +159,7 @@
       const status = el('p', 'aos-status');
       openDialog([
         el('h3', '', 'An anderes Gerät senden'),
-        el('p', '', `${summary}. Öffne auf dem Handy ${APP_NAMES[app]}, tippe dort auf „Empfangen“ und halte die Kamera auf den Code.`),
+        el('p', '', `${summary}. Tippe auf dem Handy in ${APP_NAMES[app]} ${WHERE[app].recv} und halte die Kamera auf diesen Code.`),
         wrap, status,
         el('p', '', 'Auf dem Handy wird nichts gelöscht. Bei gleichem Namen gewinnt die jüngere Fassung.'),
         closeBtn('Schließen', true)
@@ -210,7 +215,7 @@
     const bar = el('div', 'aos-bar'); const fill = el('i'); bar.append(fill);
     openDialog([
       el('h3', '', 'Von anderem Gerät empfangen'),
-      el('p', '', `Öffne ${APP_NAMES[app]} am PC, wähle dort „Senden“ und richte die Kamera auf den QR-Code.`),
+      el('p', '', `Tippe am PC in ${APP_NAMES[app]} ${WHERE[app].send} und richte die Kamera auf den QR-Code.`),
       cam, status, bar, closeBtn('Abbrechen')
     ]);
 
