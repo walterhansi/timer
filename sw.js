@@ -1,15 +1,19 @@
 /* ao timer – Service Worker
-   Seitenaufrufe: erst Netzwerk (für Updates), ohne Empfang aus dem Cache. */
+   Seitenaufrufe: erst Netzwerk (für Updates), ohne Empfang aus dem Cache.
+   Die Version kommt aus version.js – jede Änderung dort erzeugt einen
+   neuen Service Worker mit frischem Cache. */
 
 'use strict';
 
-const CACHE_VERSION = 'ao-timer-v6';
+importScripts('./version.js');
+const CACHE_VERSION = 'ao-timer-v' + self.AO_TIMER_VERSION;
 const NETWORK_TIMEOUT_MS = 3000;
 
 const APP_SHELL = [
   './',
   './index.html',
   './manifest.json',
+  './version.js',
   './aosync.js',
   './lib/qrcode.js',
   './lib/jsqr.js'
@@ -18,7 +22,8 @@ const APP_SHELL = [
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_VERSION)
-      .then(cache => Promise.allSettled(APP_SHELL.map(url => cache.add(url))))
+      .then(cache => Promise.allSettled(APP_SHELL.map(url =>
+        cache.add(new Request(url, { cache: 'reload' })))))
       .then(() => self.skipWaiting())
   );
 });
@@ -39,6 +44,7 @@ self.addEventListener('fetch', event => {
 
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
+  if (url.searchParams.has('check')) return;   // Versionsprüfung immer direkt übers Netz
 
   if (request.mode === 'navigate') {
     event.respondWith(networkFirst(request));
@@ -50,7 +56,9 @@ self.addEventListener('fetch', event => {
 async function networkFirst(request) {
   const cache = await caches.open(CACHE_VERSION);
   try {
-    const response = await fetchWithTimeout(request, NETWORK_TIMEOUT_MS);
+    let fresh = request;
+    try { fresh = new Request(request, { cache: 'no-cache' }); } catch (e) {}
+    const response = await fetchWithTimeout(fresh, NETWORK_TIMEOUT_MS);
     if (response && response.ok) cache.put('./index.html', response.clone());
     return response;
   } catch (err) {

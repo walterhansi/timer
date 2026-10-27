@@ -8,6 +8,7 @@
 <meta name="application-name" content="ao timer">
 <title>ao timer</title>
 <link rel="manifest" href="manifest.json">
+<script src="version.js"></script>
 <script src="aosync.js" defer></script>
 <style>
   :root {
@@ -826,6 +827,9 @@ const TimerEngine = (() => {
     sync: tick,
     getState,
     getSignature: () => signature,
+    // true, solange das geladene Workout noch nicht gestartet/verändert wurde
+    isUntouched: () => !running && !finished && index === 0 &&
+      (!intervals.length || remainingMs === durMs(0)),
     invalidate: () => { signature = null; }
   };
 })();
@@ -1207,6 +1211,7 @@ const SoundView = (() => {
       Utils.el('h1', { text: LABELS.tabs.sound }),
       gridEl,
       Utils.el('p', { class: 'hint', text: LABELS.sound.hint }),
+      Utils.el('p', { class: 'hint', text: 'Version ' + Updater.current }),
       fileInput
     );
   }
@@ -1283,6 +1288,95 @@ const SoundView = (() => {
 })();
 
 /* =====================================================================
+   SELBST-AKTUALISIERUNG
+   Prüft version.js auf dem Server. Bei neuer Version wird die App
+   automatisch neu geladen – aber nur, wenn gerade kein Workout läuft
+   oder pausiert ist, kein Dialog offen ist und nichts getippt wird.
+   ===================================================================== */
+const Updater = (() => {
+  const CHECK_EVERY_MS = 5 * 60 * 1000;
+  const SW_WAIT_MS = 10000;
+  const K_TARGET = 'wt.update.target';
+  const K_TAB = 'wt.update.tab';
+  const current = String(self.AO_TIMER_VERSION || '?');
+  let reg = null;
+  let pending = null;
+  let ready = false;
+  let reloading = false;
+
+  function ss(fn) { try { return fn(sessionStorage); } catch (e) { return null; } }
+
+  function isIdle() {
+    const st = TimerEngine.getState();
+    if (st.running) return false;
+    if (!st.finished && !TimerEngine.isUntouched()) return false;   // pausiert
+    if (document.querySelector('#modal.show, dialog[open]')) return false;
+    const a = document.activeElement;
+    if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return false;
+    return true;
+  }
+
+  function apply() {
+    if (!pending || !ready || reloading) return;
+    if (document.visibilityState !== 'visible' || !isIdle()) return;
+    reloading = true;
+    ss(s => { s.setItem(K_TARGET, pending); s.setItem(K_TAB, Router.current || 'setup'); });
+    location.reload();
+  }
+
+  function markReady() { ready = true; apply(); }
+
+  async function check() {
+    if (pending || reloading || navigator.onLine === false) return;
+    try {
+      const res = await fetch('version.js?check=' + Date.now(), { cache: 'no-store' });
+      if (!res.ok) return;
+      const m = (await res.text()).match(/AO_TIMER_VERSION\s*=\s*['"]([^'"]+)['"]/);
+      if (!m || m[1] === current) return;
+      if (ss(s => s.getItem(K_TARGET)) === m[1]) return;   // schon versucht – keine Schleife
+      pending = m[1];
+      if (!reg) { markReady(); return; }
+      reg.update().catch(() => {});
+      setTimeout(markReady, SW_WAIT_MS);                    // Rückfall, falls kein Wechsel kommt
+    } catch (e) {}
+  }
+
+  function init() {
+    // Nach einem automatischen Neustart: Hinweis zeigen und Tab wiederherstellen
+    const target = ss(s => s.getItem(K_TARGET));
+    const tab = ss(s => s.getItem(K_TAB));
+    ss(s => s.removeItem(K_TAB));
+    if (target && target === current) {
+      ss(s => s.removeItem(K_TARGET));
+      setTimeout(() => Utils.toast('Aktualisiert auf Version ' + current), 400);
+    }
+    if (tab && TABS.includes(tab)) Router.show(tab);
+
+    if ('serviceWorker' in navigator) {
+      const hadController = !!navigator.serviceWorker.controller;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!hadController) return;                         // Erstinstallation
+        if (!pending) pending = 'neu';
+        markReady();
+      });
+      navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
+        .then(r => { reg = r; check(); })
+        .catch(() => { check(); });
+    } else {
+      check();
+    }
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') { check(); apply(); }
+    });
+    window.addEventListener('online', check);
+    setInterval(() => { if (document.visibilityState === 'visible') check(); }, CHECK_EVERY_MS);
+  }
+
+  return { init, apply, current };
+})();
+
+/* =====================================================================
    APP / ROUTER
    ===================================================================== */
 const Router = {
@@ -1301,6 +1395,7 @@ const Router = {
     this.current = name;
     this.views[name].show();
     window.scrollTo(0, 0);
+    if (typeof Updater !== 'undefined') setTimeout(() => Updater.apply(), 300);
   }
 };
 
@@ -1320,6 +1415,7 @@ const App = {
       else if (type === 'halt') AudioEngine.stopAll();
       else if (type === 'running') { if (payload) WakeLock.request(); else WakeLock.release(); }
       if (Router.current === 'timer') TimerView.render();
+      if (type === 'halt' && TimerEngine.isUntouched()) setTimeout(() => Updater.apply(), 300);
     });
 
     document.addEventListener('visibilitychange', () => {
@@ -1331,10 +1427,8 @@ const App = {
 
     Router.show('setup');
 
-    // Service Worker (Offline-Fähigkeit, Installation)
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js').catch(() => {});
-    }
+    // Service Worker + automatische Aktualisierung
+    Updater.init();
 
     // Persistenten Speicher anfordern
     if (navigator.storage && navigator.storage.persist) {
