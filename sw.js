@@ -14,9 +14,7 @@ const APP_SHELL = [
   './index.html',
   './manifest.json',
   './version.js',
-  './aosync.js',
-  './lib/qrcode.js',
-  './lib/jsqr.js'
+  './aogit.js'
 ];
 
 self.addEventListener('install', event => {

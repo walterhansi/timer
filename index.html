@@ -3,25 +3,26 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
-<meta name="theme-color" content="#26272b">
+<meta name="theme-color" content="#131419">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="application-name" content="ao timer">
 <title>ao timer</title>
 <link rel="manifest" href="manifest.json">
 <script src="version.js"></script>
-<script src="aosync.js" defer></script>
+<script src="aogit.js"></script>
 <style>
   :root {
-    --bg: #0d0f12;
-    --surface: #171a1f;
-    --surface2: #20242b;
-    --border: #3a404a;
-    --text: #eef1f5;
-    --muted: #9aa3ae;
-    --green: #22a447;
-    --red: #d93a3a;
-    --blue: #2f6fe0;
-    --warn: #e0a43a;
+    --bg: #131419;
+    --surface: #1d1f27;
+    --surface2: #262935;
+    --border: #343848;
+    --text: #f2f3f6;
+    --muted: #a9aebb;
+    --green: #247d4d;
+    --red: #cc2d3f;
+    --blue: #124f92;
+    --warn: #f9a73b;
+    --accent: #f9a73b;
     --nav-h: 64px;
     --safe-b: env(safe-area-inset-bottom, 0px);
     --safe-t: env(safe-area-inset-top, 0px);
@@ -52,22 +53,22 @@
   .wname-display { font-size: 1.1rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   input[type=text], select {
-    width: 100%; height: 42px; background: #0b0d10; color: var(--text);
+    width: 100%; height: 42px; background: var(--bg); color: var(--text);
     border: 1px solid var(--border); border-radius: 8px; padding: 0 10px; font-size: 1rem;
   }
-  input[type=text]:focus, select:focus { outline: 2px solid var(--green); outline-offset: -1px; }
-  input[type=checkbox] { width: 24px; height: 24px; accent-color: var(--green); margin: 0; }
+  input[type=text]:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  input[type=checkbox] { width: 24px; height: 24px; accent-color: var(--accent); margin: 0; }
 
   /* ---------- Aktionsleiste / Buttons ---------- */
   .actions { display: flex; gap: 8px; margin-bottom: 14px; }
   .btn {
-    flex: 1; min-height: 46px; background: #000; color: var(--text);
+    flex: 1; min-height: 46px; background: var(--surface2); color: var(--text);
     border: 1px solid var(--border); border-radius: 10px;
     font-size: .92rem; font-weight: 600; padding: 6px 6px; line-height: 1.15; cursor: pointer;
   }
-  .btn:active { background: #1d2128; }
+  .btn:active { background: var(--border); }
   .btn.on { background: var(--green); border-color: var(--green); color: #fff; }
-  .btn.danger { border-color: var(--red); color: #ff8a8a; }
+  .btn.danger { border-color: var(--red); background: var(--red); color: #fff; }
 
   /* ---------- Setup-Tabelle ---------- */
   .itable {
@@ -100,7 +101,7 @@
   select.color[data-color=green] { background-color: var(--green); }
   select.color[data-color=red]   { background-color: var(--red); }
   select.color[data-color=blue]  { background-color: var(--blue); }
-  select option { background: #111; color: #fff; }
+  select option { background: var(--surface); color: #fff; }
 
   /* ---------- Timer ---------- */
   #view-timer.active {
@@ -144,19 +145,19 @@
     padding: 10px 8px; display: flex; flex-direction: column; justify-content: space-between;
     gap: 6px; cursor: pointer; color: var(--text); user-select: none;
   }
-  .scell.green { border-color: var(--green); background: rgba(34,164,71,.14); }
-  .scell.red   { border-color: var(--red);   background: rgba(217,58,58,.14); }
-  .scell.blue  { border-color: var(--blue);  background: rgba(47,111,224,.14); }
-  .scell.green.has { background: rgba(34,164,71,.38); }
-  .scell.red.has   { background: rgba(217,58,58,.38); }
-  .scell.blue.has  { background: rgba(47,111,224,.38); }
+  .scell.green { border-color: var(--green); background: rgba(36,125,77,.14); }
+  .scell.red   { border-color: var(--red);   background: rgba(204,45,63,.14); }
+  .scell.blue  { border-color: var(--blue);  background: rgba(18,79,146,.14); }
+  .scell.green.has { background: rgba(36,125,77,.38); }
+  .scell.red.has   { background: rgba(204,45,63,.38); }
+  .scell.blue.has  { background: rgba(18,79,146,.38); }
   .slabel { font-size: .75rem; color: var(--muted); padding-right: 26px; }
   .scell.has .slabel { color: #dfe4ea; }
   .sfile { font-size: .8rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .sempty { font-size: .8rem; color: var(--muted); }
   .sdel {
     position: absolute; top: 5px; right: 5px; width: 28px; height: 28px; border-radius: 50%;
-    border: 1px solid var(--border); background: #000; color: var(--text); font-size: 1rem;
+    border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 1rem;
     line-height: 1; padding: 0; cursor: pointer;
   }
   .hint { color: var(--muted); font-size: .8rem; margin: 14px 2px 0; line-height: 1.4; }
@@ -165,7 +166,7 @@
   .nav {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
     height: calc(var(--nav-h) + var(--safe-b)); padding-bottom: var(--safe-b);
-    display: flex; background: #000; border-top: 1px solid var(--border);
+    display: flex; background: var(--surface); border-top: 1px solid var(--border);
   }
   .nav button {
     flex: 1; background: none; border: 0; border-top: 3px solid transparent; color: var(--muted);
@@ -173,7 +174,23 @@
     gap: 3px; cursor: pointer;
   }
   .nav button svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-  .nav button.active { color: var(--green); border-top-color: var(--green); }
+  .nav button.active { color: var(--accent); border-top-color: var(--accent); }
+  .nav button { position: relative; }
+  .nav .dot { position: absolute; top: 8px; right: calc(50% - 18px); width: 9px; height: 9px; border-radius: 50%; background: var(--red); }
+
+  /* ---------- PC: Leiste links (wie fitlog) ---------- */
+  @media (min-width: 900px) {
+    body { padding-bottom: 0; padding-left: 200px; }
+    .nav { top: 0; bottom: 0; right: auto; width: 200px; height: auto; flex-direction: column; justify-content: flex-start;
+      padding: calc(16px + var(--safe-t)) 10px 16px; gap: 4px; border-top: 0; border-right: 1px solid var(--border); }
+    .nav button { flex: none; flex-direction: row; justify-content: flex-start; gap: 12px; min-height: 48px; padding: 0 14px;
+      border-top: 0; border-radius: 10px; font-size: 1rem; }
+    .nav button.active { background: var(--surface2); }
+    .nav .dot { top: 50%; right: 12px; transform: translateY(-50%); }
+    .view { max-width: 900px; padding: 24px 28px 40px; }
+    #view-timer.active { height: 100dvh; max-width: none; }
+    .toast { bottom: 24px; left: calc(50% + 100px); }
+  }
 
   /* ---------- Toast / Modal ---------- */
   .toast {
@@ -201,6 +218,7 @@
   <section class="view" id="view-timer"></section>
   <section class="view" id="view-list"></section>
   <section class="view" id="view-sound"></section>
+  <section class="view" id="view-data"></section>
 </main>
 
 <nav class="nav" id="nav">
@@ -208,6 +226,7 @@
   <button data-tab="timer"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M10 2h4"/></svg><span></span></button>
   <button data-tab="list"><svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></svg><span></span></button>
   <button data-tab="sound"><svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg><span></span></button>
+  <button data-tab="data"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.7-4.3L4 8M4 4v4h4M4 13a8 8 0 0 0 14.7 4.3L20 16M20 20v-4h-4"/></svg><span></span></button>
 </nav>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -221,7 +240,7 @@
    ===================================================================== */
 const COLORS = ['green', 'red', 'blue'];
 const SLOTS = ['start', 'middle', 'end'];
-const TABS = ['setup', 'timer', 'list', 'sound'];
+const TABS = ['setup', 'timer', 'list', 'sound', 'data'];
 
 const CONFIG = {
   minDuration: 1,
@@ -233,16 +252,16 @@ const CONFIG = {
 };
 
 const LABELS = {
-  tabs: { setup: 'Setup', timer: 'Timer', list: 'List', sound: 'Sound' },
+  tabs: { setup: 'Einstellen', timer: 'Timer', list: 'Liste', sound: 'Klang', data: 'Daten' },
   colors: { green: 'Grün', red: 'Rot', blue: 'Blau' },
   slots: { start: 'Beginn', middle: 'Dazwischen', end: 'Ende' },
   setup: {
     nameLabel: 'Name des Workouts', unsaved: '● ungesichert',
-    save: 'Workout sichern', apply: 'Kopieren/ Löschen', dnd: 'Drag & Drop',
+    save: 'Workout sichern', apply: 'Kopieren/ Löschen', dnd: 'Verschieben',
     colDuration: 'Dauer (s)', colColor: 'Farbe', colCopy: 'Kopieren', colDelete: 'Löschen'
   },
-  timer: { workout: 'Workout', start: 'Start', stop: 'Stop', next: 'Vor', prev: 'Zurück', done: 'Fertig', noName: '(ohne Namen)' },
-  list: { start: 'Starten', del: 'Löschen', setupNew: 'Setup neu', send: 'Senden (QR)', receive: 'Empfangen (QR)' },
+  timer: { workout: 'Workout', start: 'Start', stop: 'Stopp', next: 'Vor', prev: 'Zurück', done: 'Fertig', noName: '(ohne Namen)' },
+  list: { start: 'Starten', del: 'Löschen', setupNew: 'Bearbeiten' },
   sound: { none: 'kein Sound', hint: 'Tippe auf ein Feld, um eine Audiodatei zu wählen. Die Sounds gelten für alle Workouts.' },
   common: { cancel: 'Abbrechen', del: 'Löschen', discard: 'Verwerfen', remove: 'Entfernen' },
   msg: {
@@ -255,10 +274,8 @@ const LABELS = {
     saveFailed: 'Speichern fehlgeschlagen.',
     selectWorkout: 'Bitte ein Workout auswählen.',
     deleted: 'Workout gelöscht.',
-    nothingToSend: 'Noch keine gesicherten Workouts zum Senden.',
-    syncMissing: 'Übertragung nicht verfügbar – bitte App neu laden.',
     confirmDelete: n => `Workout '${n}' wirklich löschen?`,
-    confirmDiscard: 'Ungesicherte Änderungen im Setup verwerfen?',
+    confirmDiscard: 'Ungesicherte Änderungen unter „Einstellen“ verwerfen?',
     confirmRemoveSound: n => `Sound '${n}' entfernen?`,
     soundSaved: 'Sound gespeichert.',
     soundRemoved: 'Sound entfernt.',
@@ -399,6 +416,8 @@ const IDB = (() => {
 const Store = (() => {
   const K_WORKOUTS = 'wt.workouts.v1';
   const K_DRAFT = 'wt.draft.v1';
+  const K_DELETED = 'wt.deleted.v1';   // gelöschte Workouts: normName → Zeitpunkt (damit sie beim Holen nicht wiederkommen)
+  let deleted = {};
 
   let workouts = [];          // gesicherte Workouts
   let setup = null;           // Arbeitskopie im Setup { id|null, name, intervals }
@@ -445,6 +464,8 @@ const Store = (() => {
   function touchSetup() { timerWorkoutId = null; persistDraft(); }
 
   function init() {
+    const del = readJSON(K_DELETED);
+    deleted = del && typeof del === 'object' ? del : {};
     const raw = readJSON(K_WORKOUTS);
     workouts = Array.isArray(raw) ? raw.map(sanitizeWorkout).filter(Boolean) : [];
 
@@ -467,6 +488,8 @@ const Store = (() => {
   function listWorkouts() { return [...workouts].sort((a, b) => b.savedAt - a.savedAt); }
 
   function deleteWorkout(id) {
+    const w = getWorkout(id);
+    if (w) { deleted[Utils.normName(w.name)] = Date.now(); writeJSON(K_DELETED, deleted); }
     workouts = workouts.filter(w => w.id !== id);
     persistWorkouts();
     if (timerWorkoutId === id) timerWorkoutId = null;
@@ -520,6 +543,7 @@ const Store = (() => {
     let saved;
     if (existing) { Object.assign(existing, data); saved = existing; }
     else { saved = { id: Utils.uid(), ...data }; workouts.push(saved); }
+    if (deleted[key]) { delete deleted[key]; writeJSON(K_DELETED, deleted); }
     if (!persistWorkouts()) {
       workouts = JSON.parse(backup);
       return { ok: false, msg: LABELS.msg.saveFailed };
@@ -575,19 +599,35 @@ const Store = (() => {
   }
   function getSoundMeta(color, slot) { return soundMeta[soundKey(color, slot)] || null; }
 
-  /* --- Übertragung zwischen Geräten (QR) ---
-     Nur gesicherte Workouts. Nichts wird gelöscht; bei gleichem Namen gewinnt
-     die Fassung mit dem jüngeren Sicherungszeitpunkt. */
+  /* --- Abgleich zwischen Geräten (über GitHub) ---
+     Nur gesicherte Workouts. Bei gleichem Namen gewinnt die Fassung mit dem
+     jüngeren Sicherungszeitpunkt. Gelöschte Workouts werden gemerkt und kommen
+     nicht wieder (außer sie wurden danach woanders neu gesichert). */
   function exportData() {
     return {
       v: 1,
-      w: workouts.map(w => [w.name, w.savedAt, w.intervals.map(i => [i.duration, COLORS.indexOf(i.color)])])
+      w: workouts.map(w => [w.name, w.savedAt, w.intervals.map(i => [i.duration, COLORS.indexOf(i.color)])]),
+      d: deleted
     };
   }
   function importData(data) {
     if (!data || data.v !== 1 || !Array.isArray(data.w)) throw new Error('Unbekanntes Datenformat.');
-    const res = { added: [], updated: [], kept: [] };
+    const res = { added: [], updated: [], kept: [], removed: [] };
     const backup = JSON.stringify(workouts);
+    const backupDel = JSON.stringify(deleted);
+    // Löschungen der anderen Geräte übernehmen
+    if (data.d && typeof data.d === 'object') {
+      for (const [k, ts] of Object.entries(data.d)) if (Number(ts) > (deleted[k] || 0)) deleted[k] = Number(ts);
+    }
+    for (const w of [...workouts]) {
+      const t = deleted[Utils.normName(w.name)];
+      if (t && t >= w.savedAt) {
+        workouts = workouts.filter(x => x !== w);
+        if (timerWorkoutId === w.id) timerWorkoutId = null;
+        if (setup.id === w.id) setup.id = null;
+        res.removed.push(w.name);
+      }
+    }
     let setupReplace = null;
     for (const item of data.w) {
       if (!Array.isArray(item)) continue;
@@ -598,6 +638,9 @@ const Store = (() => {
         intervals: Array.isArray(ints) ? ints.map(x => Array.isArray(x) ? { duration: x[0], color: COLORS[x[1]] } : null) : []
       });
       if (!clean || !clean.name || !(Number(ts) > 0)) continue;
+      const tDel = deleted[Utils.normName(clean.name)];
+      if (tDel && tDel >= clean.savedAt) continue;          // hier gelöscht – kommt nicht wieder
+      if (tDel) delete deleted[Utils.normName(clean.name)]; // danach woanders neu gesichert
       const local = workouts.find(w => Utils.normName(w.name) === Utils.normName(clean.name));
       if (!local) {
         workouts.push({ id: Utils.uid(), name: clean.name, intervals: clean.intervals, savedAt: clean.savedAt });
@@ -611,10 +654,12 @@ const Store = (() => {
         res.kept.push(local.name);
       }
     }
-    if ((res.added.length || res.updated.length) && !persistWorkouts()) {
-      workouts = JSON.parse(backup);
+    if (!persistWorkouts() || !writeJSON(K_DELETED, deleted)) {
+      workouts = JSON.parse(backup); deleted = JSON.parse(backupDel);
+      persistWorkouts(); writeJSON(K_DELETED, deleted);
       throw new Error(LABELS.msg.saveFailed);
     }
+    persistDraft();
     // Ein unverändert geladenes Workout im Setup auf die neue Fassung bringen
     if (setupReplace) {
       const keepTimer = timerWorkoutId;
@@ -1103,10 +1148,6 @@ const ListView = (() => {
         Utils.button(L.del, onDelete),
         Utils.button(L.setupNew, onSetupNew)
       ]),
-      Utils.el('div', { class: 'actions' }, [
-        Utils.button(L.send, onSend),
-        Utils.button(L.receive, onReceive)
-      ]),
       listEl
     );
   }
@@ -1170,31 +1211,6 @@ const ListView = (() => {
     Router.show('setup');
   }
 
-  function onSend() {
-    if (!window.AOSync) { Utils.toast(LABELS.msg.syncMissing); return; }
-    const data = Store.exportData();
-    if (!data.w.length) { Utils.toast(LABELS.msg.nothingToSend); return; }
-    const n = data.w.length;
-    window.AOSync.send({ app: 'timer', data, summary: n === 1 ? '1 gesichertes Workout' : `${n} gesicherte Workouts` });
-  }
-
-  function onReceive() {
-    if (!window.AOSync) { Utils.toast(LABELS.msg.syncMissing); return; }
-    window.AOSync.receive({
-      app: 'timer',
-      apply: data => {
-        const r = Store.importData(data);
-        render();
-        const line = (label, arr) => arr.length ? `${label} (${arr.length}): ${arr.join(', ')}` : '';
-        return [
-          line('Neu', r.added),
-          line('Aktualisiert', r.updated),
-          line('Behalten, weil hier gleich alt oder neuer', r.kept)
-        ].filter(Boolean).join('\n') || 'Keine Workouts im Code gefunden.';
-      }
-    });
-  }
-
   return { build, show };
 })();
 
@@ -1211,7 +1227,6 @@ const SoundView = (() => {
       Utils.el('h1', { text: LABELS.tabs.sound }),
       gridEl,
       Utils.el('p', { class: 'hint', text: LABELS.sound.hint }),
-      Utils.el('p', { class: 'hint', text: 'Version ' + Updater.current }),
       fileInput
     );
   }
@@ -1293,6 +1308,40 @@ const SoundView = (() => {
    automatisch neu geladen – aber nur, wenn gerade kein Workout läuft
    oder pausiert ist, kein Dialog offen ist und nichts getippt wird.
    ===================================================================== */
+/* ---------- Daten (Abgleich über GitHub, Hilfe) ---------- */
+const DataView = (() => {
+  let root;
+  function build() {
+    root = document.getElementById('view-data');
+    AOGit.setup({
+      app: 'timer', title: 'ao timer',
+      getData: () => Store.exportData(),
+      apply: data => {
+        const r = Store.importData(data);
+        ListView.show();
+        const line = (label, arr) => arr.length ? `${label} (${arr.length}): ${arr.join(', ')}` : '';
+        return [
+          line('Neu', r.added),
+          line('Aktualisiert', r.updated),
+          line('Entfernt, weil auf einem anderen Gerät gelöscht', r.removed)
+        ].filter(Boolean).join('\n') || 'Keine Änderungen – alles war schon auf dem neuesten Stand.';
+      },
+      isBusy: () => TimerEngine.getState().running,
+      onNews: on => {
+        const b = document.querySelector('#nav button[data-tab="data"]');
+        if (!b) return;
+        let dot = b.querySelector('.dot');
+        if (on && !dot) { dot = document.createElement('i'); dot.className = 'dot'; b.appendChild(dot); }
+        if (!on && dot) dot.remove();
+      }
+    });
+  }
+  function show() {
+    AOGit.renderDataPage(root, { version: Updater.current, heading: LABELS.tabs.data });
+  }
+  return { build, show };
+})();
+
 const Updater = (() => {
   const CHECK_EVERY_MS = 5 * 60 * 1000;
   const SW_WAIT_MS = 10000;
@@ -1381,7 +1430,7 @@ const Updater = (() => {
    ===================================================================== */
 const Router = {
   current: null,
-  views: { setup: SetupView, timer: TimerView, list: ListView, sound: SoundView },
+  views: { setup: SetupView, timer: TimerView, list: ListView, sound: SoundView, data: DataView },
   show(name) {
     if (!this.views[name]) return;
     for (const key of TABS) {
